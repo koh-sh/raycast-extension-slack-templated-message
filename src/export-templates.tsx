@@ -1,3 +1,7 @@
+/**
+ * Export templates command that allows users to export their templates to a JSON file.
+ * Templates will be saved to the user's Downloads directory by default.
+ */
 import React, { useEffect, useState } from "react";
 import { Action, ActionPanel, List, showToast, Toast, confirmAlert } from "@raycast/api";
 import { SlackTemplate } from "./types";
@@ -13,6 +17,7 @@ export default function Command() {
   const [templates, setTemplates] = useState<SlackTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Load existing templates when the component mounts
   useEffect(() => {
     loadTemplates()
       .then(setTemplates)
@@ -22,10 +27,17 @@ export default function Command() {
       .finally(() => setIsLoading(false));
   }, []);
 
+  /**
+   * Handles the export action:
+   * 1. Checks if the file already exists
+   * 2. If it exists, asks for confirmation to overwrite
+   * 3. Writes templates to the specified file
+   */
   async function handleExport() {
     try {
       const fileExists = await checkFileExists(DEFAULT_TEMPLATE_PATH);
 
+      // Show confirmation dialog if file already exists
       if (fileExists) {
         const shouldOverwrite = await confirmAlert({
           title: "File already exists",
@@ -54,6 +66,7 @@ export default function Command() {
     }
   }
 
+  // Render a single list item with export action
   return (
     <List isLoading={isLoading}>
       <List.Item

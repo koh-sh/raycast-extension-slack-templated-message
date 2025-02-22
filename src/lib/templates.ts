@@ -1,3 +1,7 @@
+/**
+ * Template management module.
+ * Handles storage, validation, and operations for message templates.
+ */
 import { Toast, showToast } from "@raycast/api";
 import { environment } from "@raycast/api";
 import { homedir } from "os";
@@ -6,12 +10,15 @@ import fs from "fs/promises";
 import { SlackTemplate } from "../types";
 import { showCustomToast } from "./slack";
 
-// Constants
+/** File system constants */
 const TEMPLATES_FILENAME = "slack-templates.json";
 const templatesFilePath = join(environment.supportPath, TEMPLATES_FILENAME);
 export const DEFAULT_TEMPLATE_PATH = join(homedir(), "Downloads", "slack-templates.json");
 
-// Storage functions
+/**
+ * Ensures the storage directory exists
+ * @throws Error if directory creation fails
+ */
 async function ensureStorageDirectory(): Promise<void> {
   try {
     await fs.mkdir(environment.supportPath, { recursive: true });
@@ -21,6 +28,11 @@ async function ensureStorageDirectory(): Promise<void> {
   }
 }
 
+/**
+ * Loads templates from the local storage file
+ * @returns Promise<SlackTemplate[]> Array of stored templates
+ * @throws Error if file reading fails
+ */
 async function loadTemplatesFromFile(): Promise<SlackTemplate[]> {
   try {
     await ensureStorageDirectory();
@@ -35,6 +47,11 @@ async function loadTemplatesFromFile(): Promise<SlackTemplate[]> {
   }
 }
 
+/**
+ * Saves templates to the local storage file
+ * @param templates - Array of templates to save
+ * @throws Error if file writing fails
+ */
 async function saveTemplatesToFile(templates: SlackTemplate[]): Promise<void> {
   try {
     await ensureStorageDirectory();
@@ -45,7 +62,12 @@ async function saveTemplatesToFile(templates: SlackTemplate[]): Promise<void> {
   }
 }
 
-// Template validation and I/O functions
+/**
+ * Validates the format of imported templates
+ * @param templates - Unknown data to validate
+ * @returns Promise<SlackTemplate[]> Validated templates array
+ * @throws Error if validation fails
+ */
 export async function validateTemplateFormat(templates: unknown): Promise<SlackTemplate[]> {
   const importedTemplates = templates as SlackTemplate[];
 
@@ -65,6 +87,11 @@ export async function validateTemplateFormat(templates: unknown): Promise<SlackT
   return importedTemplates;
 }
 
+/**
+ * Checks if a file exists at the specified path
+ * @param filePath - Path to check
+ * @returns Promise<boolean> True if file exists
+ */
 export async function checkFileExists(filePath: string): Promise<boolean> {
   try {
     await fs.access(filePath);
@@ -77,6 +104,12 @@ export async function checkFileExists(filePath: string): Promise<boolean> {
   }
 }
 
+/**
+ * Reads templates from a specified JSON file
+ * @param filePath - Path to the JSON file
+ * @returns Promise<SlackTemplate[]> Array of templates from file
+ * @throws Error if file reading or validation fails
+ */
 export async function readTemplatesFromFile(filePath: string): Promise<SlackTemplate[]> {
   if (!filePath) {
     throw new Error("Please enter a file path");
@@ -91,10 +124,20 @@ export async function readTemplatesFromFile(filePath: string): Promise<SlackTemp
   return await validateTemplateFormat(parsedContent);
 }
 
+/**
+ * Writes templates to a specified file
+ * @param filePath - Path to write the file
+ * @param templates - Templates to write
+ */
 export async function writeTemplatesToFile(filePath: string, templates: SlackTemplate[]): Promise<void> {
   await fs.writeFile(filePath, JSON.stringify(templates, null, 2));
 }
 
+/**
+ * Handles operation errors with appropriate toast notifications
+ * @param error - Error to handle
+ * @param operation - Type of operation that failed
+ */
 export async function handleOperationError(error: unknown, operation: "import" | "export"): Promise<void> {
   await showToast({
     style: Toast.Style.Failure,
@@ -103,7 +146,10 @@ export async function handleOperationError(error: unknown, operation: "import" |
   });
 }
 
-// Template management functions
+/**
+ * Loads all templates from storage
+ * @returns Promise<SlackTemplate[]> Array of stored templates
+ */
 export async function loadTemplates(): Promise<SlackTemplate[]> {
   try {
     return await loadTemplatesFromFile();
@@ -117,6 +163,12 @@ export async function loadTemplates(): Promise<SlackTemplate[]> {
   }
 }
 
+/**
+ * Updates an existing template
+ * @param updatedTemplate - New template data
+ * @param originalName - Name of the template to update
+ * @throws Error if update fails
+ */
 export async function updateTemplate(updatedTemplate: SlackTemplate, originalName: string): Promise<void> {
   try {
     const templates = await loadTemplates();
@@ -137,6 +189,12 @@ export async function updateTemplate(updatedTemplate: SlackTemplate, originalNam
   }
 }
 
+/**
+ * Deletes a template by name
+ * @param templateName - Name of the template to delete
+ * @returns Promise<SlackTemplate[]> Updated templates array
+ * @throws Error if deletion fails
+ */
 export async function deleteTemplate(templateName: string): Promise<SlackTemplate[]> {
   try {
     const templates = await loadTemplates();
@@ -159,6 +217,11 @@ export async function deleteTemplate(templateName: string): Promise<SlackTemplat
   }
 }
 
+/**
+ * Saves multiple templates to storage
+ * @param templates - Array of templates to save
+ * @throws Error if save operation fails
+ */
 export async function saveTemplates(templates: SlackTemplate[]): Promise<void> {
   try {
     await saveTemplatesToFile(templates);

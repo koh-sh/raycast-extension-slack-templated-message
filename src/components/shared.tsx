@@ -1,3 +1,7 @@
+/**
+ * Shared components and hooks for template management functionality.
+ * Provides reusable UI components and data fetching logic.
+ */
 import React, { useState, useEffect } from "react";
 import { Form } from "@raycast/api";
 import { WebClient } from "@slack/web-api";
@@ -5,7 +9,11 @@ import { getAccessToken } from "@raycast/utils";
 import { Channel } from "../types";
 import { fetchAllChannels } from "../lib/slack";
 
-// Hook for fetching channels
+/**
+ * Custom hook for fetching and managing Slack channels
+ * Handles authentication and channel list retrieval
+ * @returns Object containing channels array and loading state
+ */
 export function useChannels() {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,7 +38,13 @@ export function useChannels() {
   return { channels, isLoading };
 }
 
-// Shared channel selection dropdown
+/**
+ * Reusable dropdown component for selecting Slack channels
+ * @param props.id - Form field ID
+ * @param props.channels - Array of available channels
+ * @param props.defaultValue - Pre-selected channel ID
+ * @param props.placeholder - Placeholder text for the dropdown
+ */
 export function ChannelDropdown({
   id = "slackChannelId",
   channels,
@@ -42,8 +56,11 @@ export function ChannelDropdown({
   defaultValue?: string;
   placeholder?: string;
 }) {
+  // Only use defaultValue if it exists in channels
+  const validDefaultValue = channels.some((channel) => channel.id === defaultValue) ? defaultValue : undefined;
+
   return (
-    <Form.Dropdown id={id} title="Channel" defaultValue={defaultValue} placeholder={placeholder}>
+    <Form.Dropdown id={id} title="Channel" defaultValue={validDefaultValue} placeholder={placeholder}>
       {channels.map((channel) => (
         <Form.Dropdown.Item key={channel.id} value={channel.id} title={`#${channel.name}`} />
       ))}
@@ -51,7 +68,12 @@ export function ChannelDropdown({
   );
 }
 
-// Shared thread ID input field
+/**
+ * Reusable text field component for thread ID input
+ * Supports optional thread selection for message templates
+ * @param props.id - Form field ID
+ * @param props.defaultValue - Pre-filled thread ID
+ */
 export function ThreadField({ id = "threadTimestamp", defaultValue }: { id?: string; defaultValue?: string }) {
   return (
     <Form.TextField

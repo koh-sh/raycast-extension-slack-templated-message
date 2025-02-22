@@ -1,17 +1,29 @@
+/**
+ * Slack API integration module.
+ * Provides functions for interacting with Slack's Web API and managing message templates.
+ */
 import { WebClient } from "@slack/web-api";
 import { showToast, Toast } from "@raycast/api";
 import { OAuthService } from "@raycast/utils";
 import { ToastOptions, Channel } from "../types";
 
+/** Slack API error codes for channel-related operations */
 export const SLACK_API_ERROR_CODES = {
   NOT_IN_CHANNEL: "not_in_channel",
   CHANNEL_NOT_FOUND: "channel_not_found",
 } as const;
 
+/** OAuth configuration for Slack API access */
 export const slack = OAuthService.slack({
   scope: "chat:write channels:read groups:read channels:history groups:history",
 });
 
+/**
+ * Replaces template variables in a message with their actual values
+ * @param message - The message template containing variables
+ * @param client - Authenticated Slack Web API client
+ * @returns Promise<string> The processed message with variables replaced
+ */
 export async function replaceTemplateVariables(message: string, client: WebClient): Promise<string> {
   const now = new Date();
   const userInfo = await client.auth.test();
@@ -28,6 +40,14 @@ export async function replaceTemplateVariables(message: string, client: WebClien
   });
 }
 
+/**
+ * Validates and normalizes a thread timestamp
+ * @param threadTs - Thread timestamp to validate
+ * @param channelId - ID of the channel containing the thread
+ * @param client - Authenticated Slack Web API client
+ * @returns Promise<string | undefined> Normalized thread timestamp or undefined
+ * @throws Error if thread ID is invalid or not found
+ */
 export async function validateAndNormalizeThreadTs(
   threadTs: string | undefined,
   channelId: string,
@@ -69,6 +89,12 @@ export async function validateAndNormalizeThreadTs(
   return normalizedTs;
 }
 
+/**
+ * Checks if the authenticated user is a member of the specified channel
+ * @param channelId - ID of the channel to check
+ * @param client - Authenticated Slack Web API client
+ * @throws Error if user is not a member of the channel
+ */
 export async function checkChannelMembership(channelId: string, client: WebClient): Promise<void> {
   try {
     const userInfo = await client.auth.test();
@@ -94,6 +120,14 @@ export async function checkChannelMembership(channelId: string, client: WebClien
   }
 }
 
+/**
+ * Sends a message to a Slack channel
+ * @param token - Slack API token
+ * @param channelId - ID of the target channel
+ * @param message - Message content to send
+ * @param threadTs - Optional thread timestamp for reply
+ * @throws Error if message sending fails
+ */
 export async function sendMessage(token: string, channelId: string, message: string, threadTs?: string) {
   const client = new WebClient(token);
   try {
@@ -136,6 +170,10 @@ export async function sendMessage(token: string, channelId: string, message: str
   }
 }
 
+/**
+ * Shows a custom toast notification
+ * @param options - Toast notification options
+ */
 export async function showCustomToast(options: ToastOptions): Promise<void> {
   await showToast({
     style: options.style,
@@ -144,6 +182,12 @@ export async function showCustomToast(options: ToastOptions): Promise<void> {
   });
 }
 
+/**
+ * Fetches all accessible Slack channels
+ * @param client - Authenticated Slack Web API client
+ * @returns Promise<Channel[]> Array of channel information
+ * @throws Error if channel fetching fails
+ */
 export async function fetchAllChannels(client: WebClient): Promise<Channel[]> {
   try {
     const allChannels: Channel[] = [];
@@ -181,6 +225,12 @@ export async function fetchAllChannels(client: WebClient): Promise<Channel[]> {
   }
 }
 
+/**
+ * Finds a channel by its ID
+ * @param channels - Array of channels to search
+ * @param channelId - ID of the channel to find
+ * @returns Channel | undefined The found channel or undefined
+ */
 export function findChannelById(channels: Channel[], channelId: string): Channel | undefined {
   return channels.find((c) => c.id === channelId);
 }

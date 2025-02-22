@@ -1,3 +1,7 @@
+/**
+ * Send message command that allows users to send messages using saved templates.
+ * Supports editing, deleting templates and sending messages to threads.
+ */
 import React, { useEffect, useState } from "react";
 import { Action, ActionPanel, Form, List, Toast, useNavigation } from "@raycast/api";
 import { getAccessToken, withAccessToken } from "@raycast/utils";
@@ -7,6 +11,10 @@ import { showCustomToast, slack, sendMessage, validateAndNormalizeThreadTs } fro
 import { loadTemplates, updateTemplate, deleteTemplate } from "./lib/templates";
 import { useChannels, ChannelDropdown, ThreadField } from "./components/shared";
 
+/**
+ * Form component for editing existing templates
+ * Allows users to modify template name, content, channel, and thread settings
+ */
 function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onUpdate: () => void }) {
   const { channels, isLoading } = useChannels();
   const { pop } = useNavigation();
@@ -24,11 +32,13 @@ function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onU
               slackChannelId: string;
               threadTimestamp?: string;
             }) => {
+              // Validate channel selection
               const selectedChannel = channels.find((c) => c.id === values.slackChannelId);
               if (!selectedChannel) {
                 throw new Error("Selected channel not found");
               }
 
+              // Validate and normalize thread timestamp if provided
               let threadTs: string | undefined;
               if (values.threadTimestamp) {
                 try {
@@ -49,6 +59,7 @@ function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onU
                 }
               }
 
+              // Create updated template object
               const updatedTemplate: SlackTemplate = {
                 name: values.name.trim(),
                 content: values.content.trim(),
@@ -81,6 +92,9 @@ function Command() {
   const [templates, setTemplates] = useState<SlackTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  /**
+   * Loads all saved templates from storage
+   */
   async function fetchTemplatesData() {
     try {
       const loadedTemplates = await loadTemplates();
@@ -90,10 +104,15 @@ function Command() {
     }
   }
 
+  // Load templates when component mounts
   useEffect(() => {
     fetchTemplatesData();
   }, []);
 
+  /**
+   * Sends a message using the selected template
+   * Handles authentication and message sending through Slack API
+   */
   async function handleSendTemplatedMessage(template: SlackTemplate) {
     setIsLoading(true);
     try {
@@ -109,6 +128,9 @@ function Command() {
     }
   }
 
+  /**
+   * Deletes the selected template and updates the template list
+   */
   async function handleDeleteTemplate(template: SlackTemplate) {
     try {
       const updatedTemplates = await deleteTemplate(template.name);
@@ -118,6 +140,7 @@ function Command() {
     }
   }
 
+  // Render template list with actions for sending, editing, and deleting
   return (
     <List isLoading={isLoading}>
       {templates.map((template) => (

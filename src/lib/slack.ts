@@ -9,7 +9,7 @@ export const SLACK_API_ERROR_CODES = {
 } as const;
 
 export const slack = OAuthService.slack({
-  scope: "chat:write channels:read groups:read",
+  scope: "chat:write channels:read groups:read channels:history groups:history",
 });
 
 export async function replaceTemplateVariables(message: string, client: WebClient): Promise<string> {

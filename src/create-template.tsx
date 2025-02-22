@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { WebClient } from "@slack/web-api";
 import { showToast, Toast, Action, ActionPanel, Form } from "@raycast/api";
-import { OAuthService, withAccessToken, getAccessToken } from "@raycast/utils";
+import { withAccessToken, getAccessToken } from "@raycast/utils";
 import { SlackTemplate, Channel } from "./types";
 import { loadTemplates, saveTemplates } from "./lib/templates";
-import { validateAndNormalizeThreadTs } from "./lib/slack";
-
-const slack = OAuthService.slack({
-  scope: "chat:write channels:read groups:read channels:history groups:history",
-});
+import { validateAndNormalizeThreadTs, slack } from "./lib/slack";
 
 function Command() {
   const [channels, setChannels] = useState<Channel[]>([]);

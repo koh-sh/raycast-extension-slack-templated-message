@@ -109,9 +109,13 @@ function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onU
         placeholder="Enter message content"
       />
       <Form.Dropdown id="slackChannelId" title="Channel" defaultValue={template.slackChannelId}>
-        {channels.map((channel) => (
-          <Form.Dropdown.Item key={channel.id} value={channel.id} title={`#${channel.name}`} />
-        ))}
+        {isLoading ? (
+          <Form.Dropdown.Item key="loading" value={template.slackChannelId} title="Loading channels..." />
+        ) : (
+          channels.map((channel) => (
+            <Form.Dropdown.Item key={channel.id} value={channel.id} title={`#${channel.name}`} />
+          ))
+        )}
       </Form.Dropdown>
       <Form.TextField
         id="threadTimestamp"

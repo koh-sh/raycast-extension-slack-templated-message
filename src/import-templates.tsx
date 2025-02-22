@@ -81,7 +81,7 @@ export default function Command() {
                 value={filePath}
                 onChange={setFilePath}
             />
-            <Form.Checkbox id="overwrite" label="Overwrite existing templates" defaultValue={false} />
+            <Form.Checkbox id="overwrite" label="Update duplicate Items" defaultValue={false} />
         </Form>
     );
 }

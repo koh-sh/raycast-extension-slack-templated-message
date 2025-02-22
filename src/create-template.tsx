@@ -201,10 +201,7 @@ function Command() {
       <Form.TextArea
         id="content"
         title="Message"
-        placeholder="Enter the message. The following variables are available:
-{date} - Date (YYYY-MM-DD)
-{time} - Time (HH:mm)
-{user} - User Name"
+        placeholder="Enter your message template"
         enableMarkdown
       />
       <Form.Dropdown id="slackChannelId" title="Channel" placeholder="Select a channel">
@@ -215,8 +212,12 @@ function Command() {
       <Form.TextField
         id="threadTimestamp"
         title="Thread ID (Optional)"
-        placeholder="Enter the message timestamp to reply to the thread (leading p will be automatically removed)"
+        placeholder="Enter thread timestamp Example: p1234567891234567"
       />
+      <Form.Description text="Available variables for the message template:
+{date} - Date (YYYY-MM-DD)
+{time} - Time (HH:mm)
+{user} - User Name" />
     </Form>
   );
 }

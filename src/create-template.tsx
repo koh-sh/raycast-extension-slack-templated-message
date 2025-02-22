@@ -170,7 +170,7 @@ function Command() {
       }
     >
       <Form.TextField id="name" title="Template Name" placeholder="Enter the name of the template" />
-      <Form.TextArea id="content" title="Message" placeholder="Enter your message template" enableMarkdown />
+      <Form.TextArea id="content" title="Message" placeholder="Enter your message template" />
       <Form.Dropdown id="slackChannelId" title="Channel" placeholder="Select a channel">
         {channels.map((channel) => (
           <Form.Dropdown.Item key={channel.id} value={channel.id} title={`#${channel.name}`} />

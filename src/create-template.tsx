@@ -1,60 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
+import { Action, ActionPanel, Form, showToast, Toast } from "@raycast/api";
+import { getAccessToken, withAccessToken } from "@raycast/utils";
 import { WebClient } from "@slack/web-api";
-import { showToast, Toast, Action, ActionPanel, Form } from "@raycast/api";
-import { withAccessToken, getAccessToken } from "@raycast/utils";
-import { SlackTemplate, Channel } from "./types";
-import { loadTemplates, saveTemplates } from "./lib/templates";
+import { SlackTemplate } from "./types";
 import { validateAndNormalizeThreadTs, slack } from "./lib/slack";
+import { loadTemplates, saveTemplates } from "./lib/templates";
+import { useChannels, ChannelDropdown, ThreadField } from "./components/shared";
 
 function Command() {
-  const [channels, setChannels] = useState<Channel[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchChannels() {
-      try {
-        const { token } = await getAccessToken();
-        if (!token) return;
-
-        const client = new WebClient(token);
-        const allChannels: Channel[] = [];
-        let cursor: string | undefined;
-
-        do {
-          const result = await client.conversations.list({
-            types: "public_channel,private_channel",
-            exclude_archived: true,
-            limit: 200,
-            cursor: cursor,
-          });
-
-          if (result.channels) {
-            const channelList = result.channels
-              .filter((channel) => channel.id && channel.name && !channel.is_archived)
-              .map((channel) => ({
-                id: channel.id!,
-                name: channel.name!,
-              }));
-            allChannels.push(...channelList);
-          }
-
-          cursor = result.response_metadata?.next_cursor;
-        } while (cursor);
-
-        setChannels(allChannels);
-      } catch (error) {
-        await showToast({
-          style: Toast.Style.Failure,
-          title: "Failed to fetch channel list",
-          message: error instanceof Error ? error.message : "Unknown error",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchChannels();
-  }, []);
+  const { channels, isLoading } = useChannels();
 
   async function handleSubmit(values: {
     name: string;
@@ -86,7 +40,6 @@ function Command() {
       return;
     }
 
-    setIsLoading(true);
     try {
       const { token } = await getAccessToken();
       if (!token) {
@@ -94,25 +47,13 @@ function Command() {
       }
 
       const client = new WebClient(token);
-
       let threadTimestamp = values.threadTimestamp?.trim();
       if (threadTimestamp) {
-        try {
-          threadTimestamp = await validateAndNormalizeThreadTs(threadTimestamp, values.slackChannelId, client);
-        } catch (error) {
-          await showToast({
-            style: Toast.Style.Failure,
-            title: "Invalid thread",
-            message: error instanceof Error ? error.message : "Unknown error",
-          });
-          return;
-        }
+        threadTimestamp = await validateAndNormalizeThreadTs(threadTimestamp, values.slackChannelId, client);
       }
 
       const savedTemplates = await loadTemplates();
-      const templates = savedTemplates;
-
-      if (templates.some((t) => t.name === values.name.trim())) {
+      if (savedTemplates.some((t) => t.name === values.name.trim())) {
         await showToast({
           style: Toast.Style.Failure,
           title: "Template with the same name already exists",
@@ -134,8 +75,7 @@ function Command() {
         threadTimestamp: threadTimestamp,
       };
 
-      await saveTemplates([...templates, newTemplate]);
-
+      await saveTemplates([...savedTemplates, newTemplate]);
       await showToast({
         style: Toast.Style.Success,
         title: "Template created successfully",
@@ -146,8 +86,6 @@ function Command() {
         title: "Failed to create template",
         message: error instanceof Error ? error.message : "Unknown error",
       });
-    } finally {
-      setIsLoading(false);
     }
   }
 
@@ -162,16 +100,8 @@ function Command() {
     >
       <Form.TextField id="name" title="Template Name" placeholder="Enter the name of the template" />
       <Form.TextArea id="content" title="Message" placeholder="Enter your message template" />
-      <Form.Dropdown id="slackChannelId" title="Channel" placeholder="Select a channel">
-        {channels.map((channel) => (
-          <Form.Dropdown.Item key={channel.id} value={channel.id} title={`#${channel.name}`} />
-        ))}
-      </Form.Dropdown>
-      <Form.TextField
-        id="threadTimestamp"
-        title="Thread ID (Optional)"
-        placeholder="Enter thread timestamp Example: p1234567891234567"
-      />
+      <ChannelDropdown channels={channels} />
+      <ThreadField />
       <Form.Description
         text="Available variables for the message template:
 {date} - Date (YYYY-MM-DD)

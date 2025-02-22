@@ -1,10 +1,15 @@
-import { Form, ActionPanel, Action, showToast, Toast, open } from "@raycast/api";
-import { useState } from "react";
-import { loadTemplates, saveTemplates } from "./lib/templates";
-import { DEFAULT_TEMPLATE_PATH, readTemplatesFromFile, handleOperationError } from "./lib/templates";
+import React, { useState } from "react";
+import { Action, ActionPanel, Form, showToast, Toast, open } from "@raycast/api";
 import { join } from "path";
 import { homedir } from "os";
 import { SlackTemplate } from "./types";
+import {
+  loadTemplates,
+  saveTemplates,
+  DEFAULT_TEMPLATE_PATH,
+  readTemplatesFromFile,
+  handleOperationError,
+} from "./lib/templates";
 
 interface FormValues {
   filePath: string;

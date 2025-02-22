@@ -78,9 +78,11 @@ export async function checkChannelMembership(channelId: string, client: WebClien
     }
   } catch (error: unknown) {
     const slackError = error as { data?: { error: string } };
-    if (slackError.data?.error === "not_in_channel" ||
+    if (
+      slackError.data?.error === "not_in_channel" ||
       slackError.data?.error === "channel_not_found" ||
-      (error instanceof Error && error.message === "not_in_channel")) {
+      (error instanceof Error && error.message === "not_in_channel")
+    ) {
       throw new Error("You need to join the channel before sending messages");
     }
     throw error;

@@ -3,8 +3,9 @@ import { Form, ActionPanel, Action, showToast, Toast } from "@raycast/api";
 import { WebClient } from "@slack/web-api";
 import { getAccessToken } from "@raycast/utils";
 import { Channel, MessageTemplate, TemplateForm as TemplateFormType } from "../types";
-import { validateThreadTs, loadChannels } from "../utils/slack";
-import { saveTemplate, loadTemplates } from "../utils/template";
+import { validateAndNormalizeThreadTs } from "../utils/slack";
+import { fetchAllChannels } from "../utils/channel";
+import { updateTemplate } from "../utils/template";
 
 interface Props {
   editingTemplate?: MessageTemplate;
@@ -22,7 +23,7 @@ export function TemplateForm({ editingTemplate, onSave }: Props) {
         if (!token) return;
 
         const client = new WebClient(token);
-        const channelList = await loadChannels(client);
+        const channelList = await fetchAllChannels(client);
         setChannels(channelList);
       } catch (error) {
         await showToast({
@@ -71,7 +72,9 @@ export function TemplateForm({ editingTemplate, onSave }: Props) {
       }
 
       const client = new WebClient(token);
-      const threadTs = values.threadTs ? await validateThreadTs(values.threadTs, values.channelId, client) : undefined;
+      const threadTs = values.threadTs
+        ? await validateAndNormalizeThreadTs(values.threadTs, values.channelId, client)
+        : undefined;
 
       const selectedChannel = channels.find((c) => c.id === values.channelId);
       if (!selectedChannel) {
@@ -86,8 +89,14 @@ export function TemplateForm({ editingTemplate, onSave }: Props) {
         threadTs: threadTs || undefined,
       };
 
-      const templates = await loadTemplates();
-      await saveTemplate(template, templates, values.overwrite);
+      const slackTemplate = {
+        name: template.name,
+        content: template.content,
+        slackChannelId: template.channelId,
+        slackChannelName: template.channelName,
+        threadTimestamp: template.threadTs,
+      };
+      await updateTemplate(slackTemplate, template.name);
 
       await showToast({
         style: Toast.Style.Success,

@@ -204,7 +204,6 @@ function Command() {
         placeholder="Enter the message. The following variables are available:
 {date} - Date (YYYY-MM-DD)
 {time} - Time (HH:mm)
-{datetime} - Date and Time (YYYY-MM-DD HH:mm)
 {user} - User Name"
         enableMarkdown
       />

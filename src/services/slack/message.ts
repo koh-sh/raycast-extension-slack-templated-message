@@ -10,7 +10,6 @@ export async function replaceTemplateVariables(message: string, client: WebClien
   const variables: { [key: string]: string } = {
     date: now.toISOString().split("T")[0],
     time: now.toTimeString().slice(0, 5),
-    datetime: `${now.toISOString().split("T")[0]} ${now.toTimeString().slice(0, 5)}`,
     user: userInfo.user || "unknown",
   };
 

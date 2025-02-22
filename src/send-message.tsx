@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { WebClient } from "@slack/web-api";
-import { List, Toast, Action, ActionPanel, Form, useNavigation } from "@raycast/api";
+import { List, Action, ActionPanel, Form, useNavigation } from "@raycast/api";
 import { withAccessToken, getAccessToken } from "@raycast/utils";
-import { SlackTemplate, Channel } from "./types";
-import { slack, showCustomToast, sendMessage, validateAndNormalizeThreadTs } from "./utils/slack";
+import { SlackTemplate } from "./types/template";
+import { Channel } from "./types/slack";
+import { showToast } from "./utils/toast";
+import { slack } from "./services/slack/api";
+import { sendMessage, validateAndNormalizeThreadTs } from "./services/slack/message";
+import { fetchAllChannels, findChannelById } from "./services/slack/channel";
 import { loadTemplates, updateTemplate, deleteTemplate } from "./utils/template";
-import { fetchAllChannels, findChannelById } from "./utils/channel";
 
 function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onUpdate: () => void }) {
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -13,10 +16,10 @@ function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onU
   const { pop } = useNavigation();
 
   useEffect(() => {
-    fetchChannels();
+    fetchChannelsData();
   }, []);
 
-  async function fetchChannels() {
+  async function fetchChannelsData() {
     try {
       const { token } = await getAccessToken();
       if (!token) return;
@@ -25,8 +28,8 @@ function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onU
       const allChannels = await fetchAllChannels(client);
       setChannels(allChannels);
     } catch (error) {
-      await showCustomToast({
-        style: Toast.Style.Failure,
+      await showToast({
+        style: "failure",
         title: "Failed to fetch channel list",
         message: error instanceof Error ? error.message : "Unknown error",
       });
@@ -64,8 +67,8 @@ function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onU
                   const client = new WebClient(token);
                   threadTs = await validateAndNormalizeThreadTs(values.threadTimestamp, values.slackChannelId, client);
                 } catch (error) {
-                  await showCustomToast({
-                    style: Toast.Style.Failure,
+                  await showToast({
+                    style: "failure",
                     title: "Invalid thread",
                     message: error instanceof Error ? error.message : "Unknown error",
                   });
@@ -86,25 +89,36 @@ function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onU
                 onUpdate();
                 await pop();
               } catch (error) {
-                // エラーは既にshowCustomToastで表示されているので、ここでは何もしない
+                // Error is already handled by showToast
               }
             }}
           />
         </ActionPanel>
       }
     >
-      <Form.TextField id="name" title="Template Name" defaultValue={template.name} />
-      <Form.TextArea id="content" title="Message" defaultValue={template.content} enableMarkdown />
-      <Form.Dropdown id="slackChannelId" title="Channel">
-        {channels.length > 0 ? (
-          channels.map((channel) => (
-            <Form.Dropdown.Item key={channel.id} value={channel.id} title={`#${channel.name}`} />
-          ))
-        ) : (
-          <Form.Dropdown.Item key="loading" value={template.slackChannelId} title="Loading channels..." />
-        )}
+      <Form.TextField
+        id="name"
+        title="Template Name"
+        defaultValue={template.name}
+        placeholder="Enter template name"
+      />
+      <Form.TextArea
+        id="content"
+        title="Message"
+        defaultValue={template.content}
+        placeholder="Enter message content"
+      />
+      <Form.Dropdown id="slackChannelId" title="Channel" defaultValue={template.slackChannelId}>
+        {channels.map((channel) => (
+          <Form.Dropdown.Item key={channel.id} value={channel.id} title={`#${channel.name}`} />
+        ))}
       </Form.Dropdown>
-      <Form.TextField id="threadTimestamp" title="Thread ID (Optional)" defaultValue={template.threadTimestamp} />
+      <Form.TextField
+        id="threadTimestamp"
+        title="Thread Timestamp (Optional)"
+        defaultValue={template.threadTimestamp}
+        placeholder="Enter thread timestamp"
+      />
     </Form>
   );
 }
@@ -113,7 +127,7 @@ function Command() {
   const [templates, setTemplates] = useState<SlackTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  async function fetchTemplates() {
+  async function fetchTemplatesData() {
     try {
       const loadedTemplates = await loadTemplates();
       setTemplates(loadedTemplates);
@@ -123,10 +137,10 @@ function Command() {
   }
 
   useEffect(() => {
-    fetchTemplates();
+    fetchTemplatesData();
   }, []);
 
-  async function sendTemplatedMessage(template: SlackTemplate) {
+  async function handleSendTemplatedMessage(template: SlackTemplate) {
     setIsLoading(true);
     try {
       const { token } = await getAccessToken();
@@ -135,11 +149,7 @@ function Command() {
       }
       await sendMessage(token, template.slackChannelId, template.content, template.threadTimestamp);
     } catch (error) {
-      await showCustomToast({
-        style: Toast.Style.Failure,
-        title: "Failed to send message",
-        message: error instanceof Error ? error.message : "Unknown error",
-      });
+      // Error is already handled in sendMessage
     } finally {
       setIsLoading(false);
     }
@@ -150,7 +160,7 @@ function Command() {
       const updatedTemplates = await deleteTemplate(template.name);
       setTemplates(updatedTemplates);
     } catch (error) {
-      // Error is already shown by showCustomToast, no need to handle here
+      // Error is already handled in deleteTemplate
     }
   }
 
@@ -170,12 +180,12 @@ function Command() {
             <ActionPanel>
               <Action
                 title="Send"
-                onAction={() => sendTemplatedMessage(template)}
+                onAction={() => handleSendTemplatedMessage(template)}
                 shortcut={{ modifiers: ["cmd"], key: "return" }}
               />
               <Action.Push
                 title="Edit"
-                target={<EditTemplateForm template={template} onUpdate={fetchTemplates} />}
+                target={<EditTemplateForm template={template} onUpdate={fetchTemplatesData} />}
                 shortcut={{ modifiers: ["cmd"], key: "e" }}
               />
               <Action

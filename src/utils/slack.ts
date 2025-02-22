@@ -1,7 +1,7 @@
 import { WebClient } from "@slack/web-api";
 import { showToast, Toast } from "@raycast/api";
 import { OAuthService } from "@raycast/utils";
-import { Channel } from "../types";
+import { ToastOptions } from "../types";
 
 export const slack = OAuthService.slack({
   scope: "chat:write channels:read groups:read",
@@ -23,38 +23,45 @@ export async function replaceTemplateVariables(message: string, client: WebClien
   });
 }
 
-export async function validateThreadTs(threadTs: string, channelId: string, client: WebClient): Promise<string | null> {
-  let processedThreadTs = threadTs.trim();
-
-  if (!processedThreadTs) return null;
-
-  if (processedThreadTs.startsWith("p")) {
-    processedThreadTs = processedThreadTs.slice(1);
+export async function validateAndNormalizeThreadTs(
+  threadTs: string | undefined,
+  channelId: string,
+  client: WebClient,
+): Promise<string | undefined> {
+  if (!threadTs?.trim()) {
+    return undefined;
   }
 
-  if (/^\d+$/.test(processedThreadTs)) {
-    const len = processedThreadTs.length;
+  let normalizedTs = threadTs.trim();
+  if (normalizedTs.startsWith("p")) {
+    normalizedTs = normalizedTs.slice(1);
+  }
+
+  if (/^\d+$/.test(normalizedTs)) {
+    const len = normalizedTs.length;
     if (len > 6) {
-      processedThreadTs = `${processedThreadTs.slice(0, len - 6)}.${processedThreadTs.slice(len - 6)}`;
+      normalizedTs = `${normalizedTs.slice(0, len - 6)}.${normalizedTs.slice(len - 6)}`;
     }
-  } else if (!/^\d+\.\d+$/.test(processedThreadTs)) {
+  }
+
+  if (!/^\d+\.\d+$/.test(normalizedTs)) {
     throw new Error("Thread ID must contain only numbers");
   }
 
   try {
     const threadInfo = await client.conversations.replies({
       channel: channelId,
-      ts: processedThreadTs,
+      ts: normalizedTs,
       limit: 1,
     });
     if (!threadInfo.messages?.length) {
       throw new Error("Thread not found");
     }
   } catch (error) {
-    throw new Error("Thread does not exist in this channel");
+    throw new Error("The specified thread does not exist in this channel");
   }
 
-  return processedThreadTs;
+  return normalizedTs;
 }
 
 export async function checkChannelMembership(channelId: string, client: WebClient): Promise<void> {
@@ -86,7 +93,7 @@ export async function sendMessage(token: string, channelId: string, message: str
     await checkChannelMembership(channelId, client);
 
     if (threadTs) {
-      await validateThreadTs(threadTs, channelId, client);
+      await validateAndNormalizeThreadTs(threadTs, channelId, client);
     }
 
     const processedMessage = await replaceTemplateVariables(message, client);
@@ -120,4 +127,12 @@ export async function sendMessage(token: string, channelId: string, message: str
     });
     throw error;
   }
+}
+
+export async function showCustomToast(options: ToastOptions): Promise<void> {
+  await showToast({
+    style: options.style,
+    title: options.title,
+    message: options.message,
+  });
 }

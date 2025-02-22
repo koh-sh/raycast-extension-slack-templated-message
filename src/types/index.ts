@@ -1,3 +1,5 @@
+import { Toast } from "@raycast/api";
+
 export interface Channel {
   id: string;
   name: string;
@@ -25,4 +27,16 @@ export interface SlackTemplate {
   slackChannelId: string;
   slackChannelName: string;
   threadTimestamp?: string;
+}
+
+export interface ToastOptions {
+  style: Toast.Style;
+  title: string;
+  message?: string;
+}
+
+export interface SlackError extends Error {
+  data?: {
+    error: string;
+  };
 }

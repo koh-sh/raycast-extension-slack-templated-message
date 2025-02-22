@@ -1,7 +1,7 @@
 import { WebClient } from "@slack/web-api";
 import { showToast, Toast } from "@raycast/api";
 import { OAuthService } from "@raycast/utils";
-import { ToastOptions, Channel, SlackError } from "../types";
+import { ToastOptions, Channel } from "../types";
 
 export const SLACK_API_ERROR_CODES = {
   NOT_IN_CHANNEL: "not_in_channel",

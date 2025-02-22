@@ -2,12 +2,7 @@ import { ActionPanel, Action, List, showToast, Toast, confirmAlert } from "@rayc
 import { loadTemplates } from "./lib/templates";
 import { useState, useEffect } from "react";
 import { SlackTemplate } from "./types";
-import {
-  DEFAULT_TEMPLATE_PATH,
-  checkFileExists,
-  writeTemplatesToFile,
-  handleOperationError,
-} from "./lib/templates";
+import { DEFAULT_TEMPLATE_PATH, checkFileExists, writeTemplatesToFile, handleOperationError } from "./lib/templates";
 
 export default function Command() {
   const [templates, setTemplates] = useState<SlackTemplate[]>([]);

@@ -249,7 +249,7 @@ function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onU
     >
       <Form.TextField id="name" title="Template Name" defaultValue={template.name} />
       <Form.TextArea id="content" title="Message" defaultValue={template.content} enableMarkdown />
-      <Form.Dropdown id="slackChannelId" title="Channel" defaultValue={template.slackChannelId}>
+      <Form.Dropdown id="slackChannelId" title="Channel" defaultValue={channels.length > 0 ? template.slackChannelId : undefined}>
         {channels.map((channel) => (
           <Form.Dropdown.Item key={channel.id} value={channel.id} title={`#${channel.name}`} />
         ))}

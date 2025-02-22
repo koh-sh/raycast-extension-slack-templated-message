@@ -121,31 +121,3 @@ export async function sendMessage(token: string, channelId: string, message: str
     throw error;
   }
 }
-
-export async function loadChannels(client: WebClient): Promise<Channel[]> {
-  const allChannels: Channel[] = [];
-  let cursor: string | undefined;
-
-  do {
-    const result = await client.conversations.list({
-      types: "public_channel,private_channel",
-      exclude_archived: true,
-      limit: 200,
-      cursor: cursor,
-    });
-
-    if (result.channels) {
-      const channelList = result.channels
-        .filter((channel) => channel.id && channel.name && !channel.is_archived)
-        .map((channel) => ({
-          id: channel.id!,
-          name: channel.name!,
-        }));
-      allChannels.push(...channelList);
-    }
-
-    cursor = result.response_metadata?.next_cursor;
-  } while (cursor);
-
-  return allChannels;
-}

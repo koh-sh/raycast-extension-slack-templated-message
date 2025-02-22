@@ -28,25 +28,6 @@ export async function saveTemplates(templates: MessageTemplate[]): Promise<void>
   }
 }
 
-export async function deleteTemplate(templateName: string, templates: MessageTemplate[]): Promise<MessageTemplate[]> {
-  try {
-    const updatedTemplates = templates.filter((t) => t.name !== templateName);
-    await saveTemplates(updatedTemplates);
-    await showToast({
-      style: Toast.Style.Success,
-      title: "Template deleted successfully",
-    });
-    return updatedTemplates;
-  } catch (error) {
-    await showToast({
-      style: Toast.Style.Failure,
-      title: "Failed to delete template",
-      message: error instanceof Error ? error.message : "Unknown error",
-    });
-    throw error;
-  }
-}
-
 export async function saveTemplate(
   template: MessageTemplate,
   existingTemplates: MessageTemplate[],

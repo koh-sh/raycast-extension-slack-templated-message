@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { WebClient } from "@slack/web-api";
-import { showToast, Toast, Action, ActionPanel, Form, LocalStorage } from "@raycast/api";
+import { showToast, Toast, Action, ActionPanel, Form } from "@raycast/api";
 import { OAuthService, withAccessToken, getAccessToken } from "@raycast/utils";
 import { SlackTemplate } from "./types";
+import { loadTemplates, saveTemplates } from "./utils/template";
+import { validateAndNormalizeThreadTs } from "./utils/slack";
 
 const slack = OAuthService.slack({
-  scope: "chat:write channels:read groups:read",
+  scope: "chat:write channels:read groups:read channels:history groups:history",
 });
 
 interface Channel {
@@ -104,50 +106,20 @@ function Command() {
 
       let threadTimestamp = values.threadTimestamp?.trim();
       if (threadTimestamp) {
-        if (threadTimestamp.startsWith("p")) {
-          threadTimestamp = threadTimestamp.slice(1);
-        }
-
-        if (/^\d+$/.test(threadTimestamp)) {
-          const len = threadTimestamp.length;
-          if (len > 6) {
-            threadTimestamp = `${threadTimestamp.slice(0, len - 6)}.${threadTimestamp.slice(len - 6)}`;
-          }
-        } else if (!/^\d+\.\d+$/.test(threadTimestamp)) {
-          await showToast({
-            style: Toast.Style.Failure,
-            title: "Invalid thread ID format",
-            message: "Thread ID must contain only numbers",
-          });
-          return;
-        }
-
         try {
-          const threadInfo = await client.conversations.replies({
-            channel: values.slackChannelId,
-            ts: threadTimestamp,
-            limit: 1,
-          });
-          if (!threadInfo.messages?.length) {
-            await showToast({
-              style: Toast.Style.Failure,
-              title: "Thread not found",
-              message: "The specified thread does not exist in this channel",
-            });
-            return;
-          }
+          threadTimestamp = await validateAndNormalizeThreadTs(threadTimestamp, values.slackChannelId, client);
         } catch (error) {
           await showToast({
             style: Toast.Style.Failure,
-            title: "Failed to check thread",
-            message: "Specified thread does not exist in this channel",
+            title: "Invalid thread",
+            message: error instanceof Error ? error.message : "Unknown error",
           });
           return;
         }
       }
 
-      const savedTemplates = (await LocalStorage.getItem<string>("messageTemplates")) || "[]";
-      const templates: SlackTemplate[] = JSON.parse(savedTemplates);
+      const savedTemplates = await loadTemplates();
+      const templates = savedTemplates;
 
       if (templates.some((t) => t.name === values.name.trim())) {
         await showToast({
@@ -171,7 +143,7 @@ function Command() {
         threadTimestamp: threadTimestamp,
       };
 
-      await LocalStorage.setItem("messageTemplates", JSON.stringify([...templates, newTemplate]));
+      await saveTemplates([...templates, newTemplate]);
 
       await showToast({
         style: Toast.Style.Success,
@@ -198,12 +170,7 @@ function Command() {
       }
     >
       <Form.TextField id="name" title="Template Name" placeholder="Enter the name of the template" />
-      <Form.TextArea
-        id="content"
-        title="Message"
-        placeholder="Enter your message template"
-        enableMarkdown
-      />
+      <Form.TextArea id="content" title="Message" placeholder="Enter your message template" enableMarkdown />
       <Form.Dropdown id="slackChannelId" title="Channel" placeholder="Select a channel">
         {channels.map((channel) => (
           <Form.Dropdown.Item key={channel.id} value={channel.id} title={`#${channel.name}`} />
@@ -214,10 +181,12 @@ function Command() {
         title="Thread ID (Optional)"
         placeholder="Enter thread timestamp Example: p1234567891234567"
       />
-      <Form.Description text="Available variables for the message template:
+      <Form.Description
+        text="Available variables for the message template:
 {date} - Date (YYYY-MM-DD)
 {time} - Time (HH:mm)
-{user} - User Name" />
+{user} - User Name"
+      />
     </Form>
   );
 }

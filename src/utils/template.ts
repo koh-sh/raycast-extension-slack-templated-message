@@ -1,13 +1,11 @@
-import { LocalStorage, Toast } from "@raycast/api";
+import { Toast } from "@raycast/api";
 import { SlackTemplate } from "../types";
 import { showCustomToast } from "./slack";
-
-const TEMPLATES_KEY = "messageTemplates";
+import { loadTemplatesFromFile, saveTemplatesToFile } from "./storage";
 
 export async function loadTemplates(): Promise<SlackTemplate[]> {
   try {
-    const savedTemplates = await LocalStorage.getItem<string>(TEMPLATES_KEY);
-    return savedTemplates ? JSON.parse(savedTemplates) : [];
+    return await loadTemplatesFromFile();
   } catch (error) {
     await showCustomToast({
       style: Toast.Style.Failure,
@@ -22,7 +20,7 @@ export async function updateTemplate(updatedTemplate: SlackTemplate, originalNam
   try {
     const templates = await loadTemplates();
     const updatedTemplates = templates.map((t) => (t.name === originalName ? updatedTemplate : t));
-    await LocalStorage.setItem(TEMPLATES_KEY, JSON.stringify(updatedTemplates));
+    await saveTemplatesToFile(updatedTemplates);
 
     await showCustomToast({
       style: Toast.Style.Success,
@@ -42,7 +40,7 @@ export async function deleteTemplate(templateName: string): Promise<SlackTemplat
   try {
     const templates = await loadTemplates();
     const updatedTemplates = templates.filter((t) => t.name !== templateName);
-    await LocalStorage.setItem(TEMPLATES_KEY, JSON.stringify(updatedTemplates));
+    await saveTemplatesToFile(updatedTemplates);
 
     await showCustomToast({
       style: Toast.Style.Success,
@@ -62,7 +60,7 @@ export async function deleteTemplate(templateName: string): Promise<SlackTemplat
 
 export async function saveTemplates(templates: SlackTemplate[]): Promise<void> {
   try {
-    await LocalStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates));
+    await saveTemplatesToFile(templates);
   } catch (error) {
     await showCustomToast({
       style: Toast.Style.Failure,

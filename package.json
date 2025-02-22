@@ -21,6 +21,18 @@
       "title": "Send Slack Message",
       "description": "Send message to Slack channel using template",
       "mode": "view"
+    },
+    {
+      "name": "export-templates",
+      "title": "Export Templates",
+      "description": "Export all templates to a JSON file",
+      "mode": "view"
+    },
+    {
+      "name": "import-templates",
+      "title": "Import Templates",
+      "description": "Import templates from a JSON file",
+      "mode": "view"
     }
   ],
   "dependencies": {

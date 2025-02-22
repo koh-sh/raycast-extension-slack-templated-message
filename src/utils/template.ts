@@ -1,11 +1,12 @@
-import { LocalStorage } from "@raycast/api";
-import { Toast } from "@raycast/api";
+import { LocalStorage, Toast } from "@raycast/api";
 import { SlackTemplate } from "../types";
 import { showCustomToast } from "./slack";
 
+const TEMPLATES_KEY = "messageTemplates";
+
 export async function loadTemplates(): Promise<SlackTemplate[]> {
   try {
-    const savedTemplates = await LocalStorage.getItem<string>("messageTemplates");
+    const savedTemplates = await LocalStorage.getItem<string>(TEMPLATES_KEY);
     return savedTemplates ? JSON.parse(savedTemplates) : [];
   } catch (error) {
     await showCustomToast({
@@ -21,7 +22,7 @@ export async function updateTemplate(updatedTemplate: SlackTemplate, originalNam
   try {
     const templates = await loadTemplates();
     const updatedTemplates = templates.map((t) => (t.name === originalName ? updatedTemplate : t));
-    await LocalStorage.setItem("messageTemplates", JSON.stringify(updatedTemplates));
+    await LocalStorage.setItem(TEMPLATES_KEY, JSON.stringify(updatedTemplates));
 
     await showCustomToast({
       style: Toast.Style.Success,
@@ -41,7 +42,7 @@ export async function deleteTemplate(templateName: string): Promise<SlackTemplat
   try {
     const templates = await loadTemplates();
     const updatedTemplates = templates.filter((t) => t.name !== templateName);
-    await LocalStorage.setItem("messageTemplates", JSON.stringify(updatedTemplates));
+    await LocalStorage.setItem(TEMPLATES_KEY, JSON.stringify(updatedTemplates));
 
     await showCustomToast({
       style: Toast.Style.Success,
@@ -53,6 +54,19 @@ export async function deleteTemplate(templateName: string): Promise<SlackTemplat
     await showCustomToast({
       style: Toast.Style.Failure,
       title: "Failed to delete template",
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+    throw error;
+  }
+}
+
+export async function saveTemplates(templates: SlackTemplate[]): Promise<void> {
+  try {
+    await LocalStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates));
+  } catch (error) {
+    await showCustomToast({
+      style: Toast.Style.Failure,
+      title: "Failed to save templates",
       message: error instanceof Error ? error.message : "Unknown error",
     });
     throw error;

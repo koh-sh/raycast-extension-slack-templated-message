@@ -1,17 +1,17 @@
 export interface Channel {
-    id: string;
-    name: string;
+  id: string;
+  name: string;
 }
 
 export interface ToastOptions {
-    style: 'success' | 'failure';
-    title: string;
-    message?: string;
+  style: "success" | "failure";
+  title: string;
+  message?: string;
 }
 
 export interface SlackError {
-    data?: {
-        error: string;
-    };
-    message?: string;
-} 
+  data?: {
+    error: string;
+  };
+  message?: string;
+}

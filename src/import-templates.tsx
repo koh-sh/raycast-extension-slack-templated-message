@@ -1,85 +1,63 @@
-import { Form, ActionPanel, Action, showToast, Toast, open, confirmAlert, Alert } from "@raycast/api";
+import { Form, ActionPanel, Action, showToast, Toast, open } from "@raycast/api";
 import { useState } from "react";
-import { SlackTemplate } from "./types/template";
 import { loadTemplates, saveTemplates } from "./utils/template";
-import fs from "fs/promises";
-import { homedir } from "os";
+import { DEFAULT_TEMPLATE_PATH, readTemplatesFromFile, handleOperationError } from "./utils/template-io";
 import { join } from "path";
+import { homedir } from "os";
+import { SlackTemplate } from "./types/template";
 
-const DEFAULT_TEMPLATE_PATH = join(homedir(), "Downloads", "slack-templates.json");
+interface FormValues {
+    filePath: string;
+    overwrite: boolean;
+}
 
 export default function Command() {
     const [isLoading, setIsLoading] = useState(false);
     const [filePath, setFilePath] = useState<string>(DEFAULT_TEMPLATE_PATH);
 
-    async function openDownloads() {
+    async function openDownloadsFolder() {
         try {
             await open(join(homedir(), "Downloads"));
             await showToast({
                 style: Toast.Style.Success,
                 title: "Downloads folder opened",
-                message: "Select a JSON file and copy its path"
+                message: "Select a JSON file and copy its path",
             });
         } catch (error) {
-            await showToast({
-                style: Toast.Style.Failure,
-                title: "Failed to open folder",
-                message: error instanceof Error ? error.message : "Unknown error occurred"
-            });
+            await handleOperationError(error, "import");
         }
     }
 
-    async function handleSubmit(values: { filePath: string; overwrite: boolean }) {
+    async function mergeTemplates(
+        importedTemplates: SlackTemplate[],
+        existingTemplates: SlackTemplate[],
+        overwrite: boolean,
+    ) {
+        if (overwrite) {
+            const uniqueExisting = existingTemplates.filter((t) => !importedTemplates.some((it) => it.name === t.name));
+            return [...uniqueExisting, ...importedTemplates];
+        } else {
+            const existingNames = new Set(existingTemplates.map((t) => t.name));
+            const uniqueImported = importedTemplates.filter((t) => !existingNames.has(t.name));
+            return [...existingTemplates, ...uniqueImported];
+        }
+    }
+
+    async function handleSubmit(values: FormValues) {
         setIsLoading(true);
         try {
-            if (!values.filePath) {
-                throw new Error("Please enter a file path");
-            }
-
-            if (!values.filePath.toLowerCase().endsWith('.json')) {
-                throw new Error("Please select a JSON file");
-            }
-
-            const fileContent = await fs.readFile(values.filePath, "utf8");
-            const importedTemplates = JSON.parse(fileContent) as SlackTemplate[];
-
-            // Validation
-            const isValid = importedTemplates.every(template =>
-                typeof template.name === "string" &&
-                typeof template.content === "string" &&
-                typeof template.slackChannelId === "string" &&
-                typeof template.slackChannelName === "string" &&
-                (template.threadTimestamp === undefined || typeof template.threadTimestamp === "string")
-            );
-
-            if (!isValid) {
-                throw new Error("Invalid template format");
-            }
-
+            const importedTemplates = await readTemplatesFromFile(values.filePath);
             const existingTemplates = await loadTemplates();
-            let newTemplates: SlackTemplate[];
-
-            if (values.overwrite) {
-                const uniqueExisting = existingTemplates.filter(t => !importedTemplates.some(it => it.name === t.name));
-                newTemplates = [...uniqueExisting, ...importedTemplates];
-            } else {
-                const existingNames = new Set(existingTemplates.map(t => t.name));
-                const uniqueImported = importedTemplates.filter(t => !existingNames.has(t.name));
-                newTemplates = [...existingTemplates, ...uniqueImported];
-            }
+            const newTemplates = await mergeTemplates(importedTemplates, existingTemplates, values.overwrite);
 
             await saveTemplates(newTemplates);
             await showToast({
                 style: Toast.Style.Success,
                 title: "Import successful",
-                message: `Imported ${importedTemplates.length} templates`
+                message: `Imported ${importedTemplates.length} templates`,
             });
         } catch (error) {
-            await showToast({
-                style: Toast.Style.Failure,
-                title: "Import failed",
-                message: error instanceof Error ? error.message : "Unknown error occurred"
-            });
+            await handleOperationError(error, "import");
         } finally {
             setIsLoading(false);
         }
@@ -91,7 +69,7 @@ export default function Command() {
             actions={
                 <ActionPanel>
                     <Action.SubmitForm title="Import" onSubmit={handleSubmit} />
-                    <Action title="Open Downloads" onAction={openDownloads} />
+                    <Action title="Open Downloads" onAction={openDownloadsFolder} />
                 </ActionPanel>
             }
         >
@@ -103,11 +81,7 @@ export default function Command() {
                 value={filePath}
                 onChange={setFilePath}
             />
-            <Form.Checkbox
-                id="overwrite"
-                label="Overwrite existing templates"
-                defaultValue={false}
-            />
+            <Form.Checkbox id="overwrite" label="Overwrite existing templates" defaultValue={false} />
         </Form>
     );
-} 
+}

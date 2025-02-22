@@ -96,18 +96,8 @@ function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onU
         </ActionPanel>
       }
     >
-      <Form.TextField
-        id="name"
-        title="Template Name"
-        defaultValue={template.name}
-        placeholder="Enter template name"
-      />
-      <Form.TextArea
-        id="content"
-        title="Message"
-        defaultValue={template.content}
-        placeholder="Enter message content"
-      />
+      <Form.TextField id="name" title="Template Name" defaultValue={template.name} placeholder="Enter template name" />
+      <Form.TextArea id="content" title="Message" defaultValue={template.content} placeholder="Enter message content" />
       <Form.Dropdown id="slackChannelId" title="Channel" defaultValue={template.slackChannelId}>
         {isLoading ? (
           <Form.Dropdown.Item key="loading" value={template.slackChannelId} title="Loading channels..." />

@@ -95,10 +95,14 @@ function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onU
     >
       <Form.TextField id="name" title="Template Name" defaultValue={template.name} />
       <Form.TextArea id="content" title="Message" defaultValue={template.content} enableMarkdown />
-      <Form.Dropdown id="slackChannelId" title="Channel" defaultValue={template.slackChannelId}>
-        {channels.map((channel) => (
-          <Form.Dropdown.Item key={channel.id} value={channel.id} title={`#${channel.name}`} />
-        ))}
+      <Form.Dropdown id="slackChannelId" title="Channel">
+        {channels.length > 0 ? (
+          channels.map((channel) => (
+            <Form.Dropdown.Item key={channel.id} value={channel.id} title={`#${channel.name}`} />
+          ))
+        ) : (
+          <Form.Dropdown.Item key="loading" value={template.slackChannelId} title="Loading channels..." />
+        )}
       </Form.Dropdown>
       <Form.TextField id="threadTimestamp" title="Thread ID (Optional)" defaultValue={template.threadTimestamp} />
     </Form>

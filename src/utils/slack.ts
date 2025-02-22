@@ -74,14 +74,14 @@ export async function checkChannelMembership(channelId: string, client: WebClien
     });
 
     if (!members.members?.includes(userInfo.user_id)) {
-      throw new Error("not_in_channel");
+      throw new Error("You need to join the channel before sending messages");
     }
   } catch (error: unknown) {
-    if (
-      (error as { data?: { error: string } })?.data?.error === "not_in_channel" ||
-      (error as Error).message === "not_in_channel"
-    ) {
-      throw new Error("not_in_channel");
+    const slackError = error as { data?: { error: string } };
+    if (slackError.data?.error === "not_in_channel" ||
+      slackError.data?.error === "channel_not_found" ||
+      (error instanceof Error && error.message === "not_in_channel")) {
+      throw new Error("You need to join the channel before sending messages");
     }
     throw error;
   }

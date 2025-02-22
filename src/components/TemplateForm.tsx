@@ -138,7 +138,6 @@ export function TemplateForm({ editingTemplate, onSave }: Props) {
         placeholder="Enter message content. Available variables:
 {date} - Date (YYYY-MM-DD)
 {time} - Time (HH:mm)
-{datetime} - Date and Time (YYYY-MM-DD HH:mm)
 {user} - Username"
         enableMarkdown
         defaultValue={editingTemplate?.content}

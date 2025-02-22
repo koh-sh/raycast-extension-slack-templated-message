@@ -2,10 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Form, ActionPanel, Action, showToast, Toast } from "@raycast/api";
 import { WebClient } from "@slack/web-api";
 import { getAccessToken } from "@raycast/utils";
-import { Channel, MessageTemplate, TemplateForm as TemplateFormType } from "../types";
-import { validateAndNormalizeThreadTs } from "../utils/slack";
-import { fetchAllChannels } from "../utils/channel";
-import { updateTemplate } from "../utils/template";
+import { Channel, MessageTemplate, TemplateForm as TemplateFormType } from "../../types";
+import { validateAndNormalizeThreadTs, fetchAllChannels } from "../../lib/slack";
+import { updateTemplate } from "../../lib/templates";
 
 interface Props {
   editingTemplate?: MessageTemplate;

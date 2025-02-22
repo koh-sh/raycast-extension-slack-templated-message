@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { WebClient } from "@slack/web-api";
-import { List, Action, ActionPanel, Form, useNavigation } from "@raycast/api";
+import { List, Action, ActionPanel, Form, useNavigation, Toast } from "@raycast/api";
 import { withAccessToken, getAccessToken } from "@raycast/utils";
-import { SlackTemplate } from "./types/template";
-import { Channel } from "./types/slack";
-import { showToast } from "./utils/toast";
-import { slack } from "./services/slack/api";
-import { sendMessage, validateAndNormalizeThreadTs } from "./services/slack/message";
-import { fetchAllChannels, findChannelById } from "./services/slack/channel";
-import { loadTemplates, updateTemplate, deleteTemplate } from "./utils/template";
+import { SlackTemplate, Channel } from "./types";
+import { showCustomToast } from "./lib/slack";
+import { slack } from "./lib/slack";
+import { sendMessage, validateAndNormalizeThreadTs } from "./lib/slack";
+import { fetchAllChannels, findChannelById } from "./lib/slack";
+import { loadTemplates, updateTemplate, deleteTemplate } from "./lib/templates";
 
 function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onUpdate: () => void }) {
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -28,8 +27,8 @@ function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onU
       const allChannels = await fetchAllChannels(client);
       setChannels(allChannels);
     } catch (error) {
-      await showToast({
-        style: "failure",
+      await showCustomToast({
+        style: Toast.Style.Failure,
         title: "Failed to fetch channel list",
         message: error instanceof Error ? error.message : "Unknown error",
       });
@@ -67,8 +66,8 @@ function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onU
                   const client = new WebClient(token);
                   threadTs = await validateAndNormalizeThreadTs(values.threadTimestamp, values.slackChannelId, client);
                 } catch (error) {
-                  await showToast({
-                    style: "failure",
+                  await showCustomToast({
+                    style: Toast.Style.Failure,
                     title: "Invalid thread",
                     message: error instanceof Error ? error.message : "Unknown error",
                   });

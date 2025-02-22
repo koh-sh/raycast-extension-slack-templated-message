@@ -1,5 +1,5 @@
 import { ActionPanel, Action, List, showToast, Toast, confirmAlert } from "@raycast/api";
-import { loadTemplates } from "./utils/template";
+import { loadTemplates } from "./lib/templates";
 import { useState, useEffect } from "react";
 import { SlackTemplate } from "./types";
 import {
@@ -7,7 +7,7 @@ import {
   checkFileExists,
   writeTemplatesToFile,
   handleOperationError,
-} from "./utils/template-io";
+} from "./lib/templates";
 
 export default function Command() {
   const [templates, setTemplates] = useState<SlackTemplate[]>([]);

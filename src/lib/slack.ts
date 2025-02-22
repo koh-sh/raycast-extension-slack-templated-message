@@ -1,7 +1,16 @@
 import { WebClient } from "@slack/web-api";
-import { SLACK_API_ERROR_CODES } from "./api";
-import { showToast } from "../../utils/toast";
-import { SlackError } from "../../types/slack";
+import { showToast, Toast } from "@raycast/api";
+import { OAuthService } from "@raycast/utils";
+import { ToastOptions, Channel, SlackError } from "../types";
+
+export const SLACK_API_ERROR_CODES = {
+  NOT_IN_CHANNEL: "not_in_channel",
+  CHANNEL_NOT_FOUND: "channel_not_found",
+} as const;
+
+export const slack = OAuthService.slack({
+  scope: "chat:write channels:read groups:read",
+});
 
 export async function replaceTemplateVariables(message: string, client: WebClient): Promise<string> {
   const now = new Date();
@@ -10,6 +19,7 @@ export async function replaceTemplateVariables(message: string, client: WebClien
   const variables: { [key: string]: string } = {
     date: now.toISOString().split("T")[0],
     time: now.toTimeString().slice(0, 5),
+    datetime: `${now.toISOString().split("T")[0]} ${now.toTimeString().slice(0, 5)}`,
     user: userInfo.user || "unknown",
   };
 
@@ -71,8 +81,8 @@ export async function checkChannelMembership(channelId: string, client: WebClien
     if (!members.members?.includes(userInfo.user_id)) {
       throw new Error("You need to join the channel before sending messages");
     }
-  } catch (error) {
-    const slackError = error as SlackError;
+  } catch (error: unknown) {
+    const slackError = error as { data?: { error: string } };
     if (
       slackError.data?.error === SLACK_API_ERROR_CODES.NOT_IN_CHANNEL ||
       slackError.data?.error === SLACK_API_ERROR_CODES.CHANNEL_NOT_FOUND ||
@@ -84,7 +94,7 @@ export async function checkChannelMembership(channelId: string, client: WebClien
   }
 }
 
-export async function sendMessage(token: string, channelId: string, message: string, threadTs?: string): Promise<void> {
+export async function sendMessage(token: string, channelId: string, message: string, threadTs?: string) {
   const client = new WebClient(token);
   try {
     await checkChannelMembership(channelId, client);
@@ -102,7 +112,7 @@ export async function sendMessage(token: string, channelId: string, message: str
     });
 
     await showToast({
-      style: "success",
+      style: Toast.Style.Success,
       title: "Message sent successfully",
     });
   } catch (error) {
@@ -118,10 +128,59 @@ export async function sendMessage(token: string, channelId: string, message: str
     }
 
     await showToast({
-      style: "failure",
+      style: Toast.Style.Failure,
       title: "Error",
       message: errorMessage,
     });
     throw error;
   }
+}
+
+export async function showCustomToast(options: ToastOptions): Promise<void> {
+  await showToast({
+    style: options.style,
+    title: options.title,
+    message: options.message,
+  });
+}
+
+export async function fetchAllChannels(client: WebClient): Promise<Channel[]> {
+  try {
+    const allChannels: Channel[] = [];
+    let cursor: string | undefined;
+
+    do {
+      const result = await client.conversations.list({
+        types: "public_channel,private_channel",
+        exclude_archived: true,
+        limit: 200,
+        cursor: cursor,
+      });
+
+      if (result.channels) {
+        const channelList = result.channels
+          .filter((channel) => channel.id && channel.name && !channel.is_archived)
+          .map((channel) => ({
+            id: channel.id!,
+            name: channel.name!,
+          }));
+        allChannels.push(...channelList);
+      }
+
+      cursor = result.response_metadata?.next_cursor;
+    } while (cursor);
+
+    return allChannels;
+  } catch (error) {
+    await showCustomToast({
+      style: Toast.Style.Failure,
+      title: "Failed to fetch channel list",
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+    throw error;
+  }
+}
+
+export function findChannelById(channels: Channel[], channelId: string): Channel | undefined {
+  return channels.find((c) => c.id === channelId);
 }

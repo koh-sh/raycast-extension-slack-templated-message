@@ -83,7 +83,7 @@ export default function Command() {
         </ActionPanel>
       }
     >
-      <Form.Description text={`Select a JSON file to import. Default path: ${DEFAULT_TEMPLATE_PATH}`} />
+      <Form.Description text={`Specify a JSON file to import.`} />
       <Form.TextField
         id="filePath"
         title="File Path"

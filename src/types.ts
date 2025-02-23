@@ -16,7 +16,7 @@ export interface Channel {
  */
 export interface SlackTemplate {
   name: string;
-  content: string;
+  message: string;
   slackChannelId: string;
   slackChannelName: string;
   threadTimestamp?: string;

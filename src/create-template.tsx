@@ -24,7 +24,7 @@ function Command() {
    */
   async function handleSubmit(values: {
     name: string;
-    content: string;
+    message: string;
     slackChannelId: string;
     threadTimestamp?: string;
   }) {
@@ -37,7 +37,7 @@ function Command() {
       return;
     }
 
-    if (!values.content.trim()) {
+    if (!values.message.trim()) {
       await showToast({
         style: Toast.Style.Failure,
         title: "Please enter a message",
@@ -88,7 +88,7 @@ function Command() {
       // Create and save new template
       const newTemplate: SlackTemplate = {
         name: values.name.trim(),
-        content: values.content.trim(),
+        message: values.message.trim(),
         slackChannelId: values.slackChannelId,
         slackChannelName: selectedChannel.name,
         threadTimestamp: threadTimestamp,
@@ -119,7 +119,7 @@ function Command() {
       }
     >
       <Form.TextField id="name" title="Template Name" placeholder="Enter the name of the template" />
-      <Form.TextArea id="content" title="Message" placeholder="Enter your message template" />
+      <Form.TextArea id="message" title="Message" placeholder="Enter your message template" />
       <ChannelDropdown channels={channels} />
       <ThreadField />
       <Form.Description

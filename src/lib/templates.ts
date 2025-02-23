@@ -74,7 +74,7 @@ export async function validateTemplateFormat(templates: unknown): Promise<SlackT
   const isValid = importedTemplates.every(
     (template) =>
       typeof template.name === "string" &&
-      typeof template.content === "string" &&
+      typeof template.message === "string" &&
       typeof template.slackChannelId === "string" &&
       typeof template.slackChannelName === "string" &&
       (template.threadTimestamp === undefined || typeof template.threadTimestamp === "string"),

@@ -13,7 +13,7 @@ import { useChannels, ChannelDropdown, ThreadField } from "./components/shared";
 
 /**
  * Form component for editing existing templates
- * Allows users to modify template name, content, channel, and thread settings
+ * Allows users to modify template name, message, channel, and thread settings
  */
 function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onUpdate: () => void }) {
   const { channels, isLoading } = useChannels();
@@ -28,7 +28,7 @@ function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onU
             title="Update"
             onSubmit={async (values: {
               name: string;
-              content: string;
+              message: string;
               slackChannelId: string;
               threadTimestamp?: string;
             }) => {
@@ -62,7 +62,7 @@ function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onU
               // Create updated template object
               const updatedTemplate: SlackTemplate = {
                 name: values.name.trim(),
-                content: values.content.trim(),
+                message: values.message.trim(),
                 slackChannelId: values.slackChannelId,
                 slackChannelName: selectedChannel.name,
                 threadTimestamp: threadTs,
@@ -81,7 +81,7 @@ function EditTemplateForm({ template, onUpdate }: { template: SlackTemplate; onU
       }
     >
       <Form.TextField id="name" title="Template Name" defaultValue={template.name} placeholder="Enter template name" />
-      <Form.TextArea id="content" title="Message" defaultValue={template.content} placeholder="Enter message content" />
+      <Form.TextArea id="message" title="Message" defaultValue={template.message} placeholder="Enter message content" />
       <ChannelDropdown channels={channels} defaultValue={template.slackChannelId} />
       <ThreadField defaultValue={template.threadTimestamp} />
     </Form>
@@ -120,7 +120,7 @@ function Command() {
       if (!token) {
         throw new Error("Failed to get authentication token");
       }
-      await sendMessage(token, template.slackChannelId, template.content, template.threadTimestamp);
+      await sendMessage(token, template.slackChannelId, template.message, template.threadTimestamp);
     } catch (error) {
       // Error is already handled in sendMessage
     } finally {
@@ -150,7 +150,7 @@ function Command() {
           subtitle={`#${template.slackChannelName}${template.threadTimestamp ? " (Thread)" : ""}`}
           accessories={[
             {
-              text: template.content.length > 50 ? template.content.slice(0, 50) + "..." : template.content,
+              text: template.message.length > 50 ? template.message.slice(0, 50) + "..." : template.message,
             },
           ]}
           actions={

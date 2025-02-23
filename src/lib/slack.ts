@@ -5,13 +5,31 @@
 import { WebClient } from "@slack/web-api";
 import { showToast, Toast } from "@raycast/api";
 import { OAuthService } from "@raycast/utils";
-import { ToastOptions, Channel } from "../types";
+import { Channel } from "../types";
 
 /** Slack API error codes for channel-related operations */
 export const SLACK_API_ERROR_CODES = {
   NOT_IN_CHANNEL: "not_in_channel",
   CHANNEL_NOT_FOUND: "channel_not_found",
 } as const;
+
+/**
+ * Extended Error type for Slack API errors
+ */
+interface SlackError extends Error {
+  data?: {
+    error: string;
+  };
+}
+
+/**
+ * Common options for displaying toast notifications
+ */
+interface ToastOptions {
+  style: Toast.Style;
+  title: string;
+  message?: string;
+}
 
 /** OAuth configuration for Slack API access */
 export const slack = OAuthService.slack({
@@ -23,6 +41,15 @@ export const slack = OAuthService.slack({
  * @param message - The message template containing variables
  * @param client - Authenticated Slack Web API client
  * @returns Promise<string> The processed message with variables replaced
+ *
+ * Supported variables:
+ * - {date} - Current date in YYYY-MM-DD format (e.g., 2024-02-23)
+ * - {time} - Current time in HH:mm format (e.g., 14:30)
+ * - {user} - Current Slack user name (obtained from auth.test)
+ *
+ * Example:
+ * "Meeting at {time} on {date} by {user}" ->
+ * "Meeting at 14:30 on 2024-02-23 by JohnDoe"
  */
 export async function replaceTemplateVariables(message: string, client: WebClient): Promise<string> {
   const now = new Date();
@@ -46,32 +73,48 @@ export async function replaceTemplateVariables(message: string, client: WebClien
  * @param client - Authenticated Slack Web API client
  * @returns Promise<string | undefined> Normalized thread timestamp or undefined
  * @throws Error if thread ID is invalid or not found
+ *
+ * Thread timestamp format:
+ * - Input can be with or without 'p' prefix
+ * - Can be all numbers or numbers with decimal point
+ * - Will be normalized to "XXXXXXXXXX.YYYYYY" format
+ *
+ * Example formats accepted:
+ * - "1234567890.123456"  -> "1234567890.123456"
+ * - "p1234567890123456"  -> "1234567890.123456"
+ * - "1234567890123456"   -> "1234567890.123456"
  */
 export async function validateAndNormalizeThreadTs(
   threadTs: string | undefined,
   channelId: string,
   client: WebClient,
 ): Promise<string | undefined> {
+  // Return undefined if threadTs is empty or only whitespace
   if (!threadTs?.trim()) {
     return undefined;
   }
 
+  // Step 1: Remove 'p' prefix if exists
   let normalizedTs = threadTs.trim();
   if (normalizedTs.startsWith("p")) {
     normalizedTs = normalizedTs.slice(1);
   }
 
+  // Step 2: Convert pure numeric string to timestamp format
   if (/^\d+$/.test(normalizedTs)) {
     const len = normalizedTs.length;
+    // If length > 6, insert decimal point 6 digits from the end
     if (len > 6) {
       normalizedTs = `${normalizedTs.slice(0, len - 6)}.${normalizedTs.slice(len - 6)}`;
     }
   }
 
+  // Step 3: Validate final format (must be numbers with decimal point)
   if (!/^\d+\.\d+$/.test(normalizedTs)) {
     throw new Error("Thread ID must contain only numbers");
   }
 
+  // Step 4: Verify thread exists in the channel
   try {
     const threadInfo = await client.conversations.replies({
       channel: channelId,
@@ -89,37 +132,6 @@ export async function validateAndNormalizeThreadTs(
 }
 
 /**
- * Checks if the authenticated user is a member of the specified channel
- * @param channelId - ID of the channel to check
- * @param client - Authenticated Slack Web API client
- * @throws Error if user is not a member of the channel
- */
-export async function checkChannelMembership(channelId: string, client: WebClient): Promise<void> {
-  try {
-    const userInfo = await client.auth.test();
-    if (!userInfo.user_id) throw new Error("Failed to get user ID");
-
-    const members = await client.conversations.members({
-      channel: channelId,
-    });
-
-    if (!members.members?.includes(userInfo.user_id)) {
-      throw new Error("You need to join the channel before sending messages");
-    }
-  } catch (error: unknown) {
-    const slackError = error as { data?: { error: string } };
-    if (
-      slackError.data?.error === SLACK_API_ERROR_CODES.NOT_IN_CHANNEL ||
-      slackError.data?.error === SLACK_API_ERROR_CODES.CHANNEL_NOT_FOUND ||
-      (error instanceof Error && error.message === SLACK_API_ERROR_CODES.NOT_IN_CHANNEL)
-    ) {
-      throw new Error("You need to join the channel before sending messages");
-    }
-    throw error;
-  }
-}
-
-/**
  * Sends a message to a Slack channel
  * @param token - Slack API token
  * @param channelId - ID of the target channel
@@ -129,9 +141,8 @@ export async function checkChannelMembership(channelId: string, client: WebClien
  */
 export async function sendMessage(token: string, channelId: string, message: string, threadTs?: string) {
   const client = new WebClient(token);
-  try {
-    await checkChannelMembership(channelId, client);
 
+  try {
     if (threadTs) {
       await validateAndNormalizeThreadTs(threadTs, channelId, client);
     }
@@ -144,27 +155,17 @@ export async function sendMessage(token: string, channelId: string, message: str
       thread_ts: threadTs && threadTs.trim() !== "" ? threadTs : undefined,
     });
 
-    await showToast({
+    await showCustomToast({
       style: Toast.Style.Success,
       title: "Message sent successfully",
     });
   } catch (error) {
-    let errorMessage = "Failed to send message";
-    if (error instanceof Error) {
-      if (error.message === SLACK_API_ERROR_CODES.NOT_IN_CHANNEL) {
-        errorMessage = "You are not a member of this channel. Please join the channel and try again.";
-      } else if (error.message === "Thread does not exist in this channel") {
-        errorMessage = "The specified thread does not exist in this channel. Please check the channel selection.";
-      } else {
-        errorMessage = error.message;
-      }
+    if ((error as SlackError).data?.error === SLACK_API_ERROR_CODES.NOT_IN_CHANNEL) {
+      throw new Error("You need to join the channel before sending messages");
     }
-
-    await showToast({
-      style: Toast.Style.Failure,
-      title: "Error",
-      message: errorMessage,
-    });
+    if ((error as SlackError).data?.error === SLACK_API_ERROR_CODES.CHANNEL_NOT_FOUND) {
+      throw new Error("Channel not found");
+    }
     throw error;
   }
 }
@@ -222,14 +223,4 @@ export async function fetchAllChannels(client: WebClient): Promise<Channel[]> {
     });
     throw error;
   }
-}
-
-/**
- * Finds a channel by its ID
- * @param channels - Array of channels to search
- * @param channelId - ID of the channel to find
- * @returns Channel | undefined The found channel or undefined
- */
-export function findChannelById(channels: Channel[], channelId: string): Channel | undefined {
-  return channels.find((c) => c.id === channelId);
 }

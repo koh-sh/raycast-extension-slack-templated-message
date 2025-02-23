@@ -122,7 +122,11 @@ function Command() {
       }
       await sendMessage(token, template.slackChannelId, template.message, template.threadTimestamp);
     } catch (error) {
-      // Error is already handled in sendMessage
+      await showCustomToast({
+        style: Toast.Style.Failure,
+        title: "Failed to send message",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
     } finally {
       setIsLoading(false);
     }

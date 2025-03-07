@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> Published as official extension https://www.raycast.com/koh-sh/slack-templated-message
+
 # Slack Templated Message
 
 A Raycast Extension for sending templated messages to Slack channels.
